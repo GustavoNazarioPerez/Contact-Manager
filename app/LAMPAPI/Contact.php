@@ -1,7 +1,7 @@
 <?php
 
 // Making sure that util functions are included
-require_once 'utils/utils.php';
+require_once('utils/utils.php');
 
 // Setting global variable to use database connection for different operations
 global $conn;
@@ -16,10 +16,10 @@ $conn = new mysqli($dbServer, $dbUsername, $dbPassword, $dbName);
 
 // Unable to connect to MySQL database
 if ($conn->connect_error) {
-    exit('Connection failed: '.$conn->connect_error);
+    die("Connection failed: " . $conn->connect_error);
 }
 
-/*
+/** 
  * This string of conditionals is responsible for handling all of the requests
  * from the frontend. The POST request is responsible for (C)reating a contact,
  * the GET request is responsible for (R)eading contacts, the PUT request is
@@ -27,6 +27,7 @@ if ($conn->connect_error) {
  * for (D)eleting contact
  */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
     // Parsing JSON data from frontend
     $data = parseJsonData();
     $user_id = $data['user_id'];
@@ -45,11 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     echo json_encode($newContactID);
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+
     // Retrieve query parameters
     $user_id = isset($_GET['user_id']) ? $_GET['user_id'] : null;
     $contact_id = isset($_GET['contact_id']) ? $_GET['contact_id'] : null;
 
-    if (is_null($contact_id) || $contact_id == 'null') {
+    if (is_null($contact_id) || $contact_id == "null") {
         // Attempting to read all contacts of user with user_id
         $contacts = getAllContacts($user_id);
     } else {
@@ -60,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     echo json_encode($contacts);
 } elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+
     // Parsing JSON data from frontend
     $data = parseJsonData();
     $contact_id = $data['contact_id'];
@@ -74,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
     echo json_encode($updated);
 } elseif ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
+
     // Parsing JSON data from frontend
     $data = parseJsonData();
     $contact_id = $data['contact_id'];
@@ -84,8 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Had to Add to ensure json response
     echo json_encode(["status" => "success", "message" => "Contact deleted successfully"]);
 } else {
+
     // Handling for any other request, will not perform any database operations
-    $error = 'This request type is not supported';
+    $error = "This request type is not supported";
     returnWithError($error, 400);
 }
 
@@ -98,16 +103,16 @@ function addContact($user_id, $firstName, $lastName, $email, $phone)
     $date = date('Y-m-d');
 
     // Using SQL query to insert contact information outlined in database schema
-    $sql = 'INSERT INTO contacts (user_id, first_name, last_name, email, phone, date_created)
-            VALUES (?, ?, ?, ?, ?, ?)';
+    $sql = "INSERT INTO contacts (user_id, first_name, last_name, email, phone, date_created)
+            VALUES (?, ?, ?, ?, ?, ?)";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('isssss', $user_id, $firstName, $lastName, $email, $phone, $date);
+    $stmt->bind_param("isssss", $user_id, $firstName, $lastName, $email, $phone, $date);
     $success = $stmt->execute();
     $stmt->close();
 
     if (!$success) {
-        $error = 'Failed to add contact to database';
+        $error = "Failed to add contact to database";
         returnWithError($error, 400);
     }
 
@@ -127,10 +132,10 @@ function getContact($user_id, $contact_id)
     global $conn;
 
     // Using SQL query to get contact outlined in database schema
-    $sql = 'SELECT * FROM contacts WHERE user_id = ? AND contact_id = ?';
+    $sql = "SELECT * FROM contacts WHERE user_id = ? AND contact_id = ?";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('ii', $user_id, $contact_id);
+    $stmt->bind_param("ii", $user_id, $contact_id);
     $stmt->execute();
 
     $result = $stmt->get_result();
@@ -138,7 +143,7 @@ function getContact($user_id, $contact_id)
 
     // Check if this contact_id doesn't exist in which case we exit with error
     if ($row === null) {
-        $error = 'Error retrieving contact';
+        $error = "Error retrieving contact";
         returnWithError($error, 400);
     }
 
@@ -155,10 +160,10 @@ function getAllContacts($user_id)
     global $conn;
 
     // Using SQL query to get contacts outlined in database schema
-    $sql = 'SELECT * FROM contacts WHERE user_id = ?';
+    $sql = "SELECT * FROM contacts WHERE user_id = ?";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $user_id);
+    $stmt->bind_param("i", $user_id);
     $stmt->execute();
 
     $result = $stmt->get_result();
@@ -166,13 +171,13 @@ function getAllContacts($user_id)
     $conn->close();
 
     // Iterate through rows and add contacts information to an array
-    $contacts = [];
+    $contacts = array();
     while ($row = $result->fetch_assoc()) {
         $contacts[] = $row;
     }
 
     // Return array with all contacts for user_id
-    return ['contacts' => $contacts];
+    return array('contacts' => $contacts);
 }
 
 // This function calls the helper edit functions to edit subfields of the contact
@@ -180,27 +185,27 @@ function editContact($contact_id, $newFirstName, $newLastName, $newEmail, $newPh
 {
     // Updating each field of the contact to the new value if it is not "null"
     $success = true;
-    if ($newFirstName != 'null') {
-        $success &= editFirstName($contact_id, $newFirstName);
+    if ($newFirstName != "null") {
+        $success = $success & editFirstName($contact_id, $newFirstName);
     }
 
-    if ($newLastName != 'null') {
-        $success &= editLastName($contact_id, $newLastName);
+    if ($newLastName != "null") {
+        $success = $success & editLastName($contact_id, $newLastName);
     }
 
-    if ($newEmail != 'null') {
-        $success &= editEmail($contact_id, $newEmail);
+    if ($newEmail != "null") {
+        $success = $success & editEmail($contact_id, $newEmail);
     }
 
-    if ($newPhone != 'null') {
-        $success &= editPhone($contact_id, $newPhone);
+    if ($newPhone != "null") {
+        $success = $success & editPhone($contact_id, $newPhone);
     }
 
     // Setting status code to 200 to indicate success
     http_response_code(200);
 
     // returning newly updated contact_id
-    return ['contact_id' => $contact_id];
+    return array('contact_id' => $contact_id);
 }
 
 // Helper function of editContact() to edit the first name
@@ -209,19 +214,18 @@ function editFirstName($contact_id, $newFirstName)
     global $conn;
 
     // SQL query to set the first_name to the new value
-    $sql = 'UPDATE contacts SET first_name = ? WHERE contact_id = ?';
+    $sql = "UPDATE contacts SET first_name = ? WHERE contact_id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('si', $newFirstName, $contact_id);
+    $stmt->bind_param("si", $newFirstName, $contact_id);
     $stmt->execute();
 
     if (!$stmt->execute()) {
-        $error = 'Error updating first name: '.$stmt->error;
+        $error = "Error updating first name: " . $stmt->error;
         $stmt->close();
         returnWithError($error, 400);
     }
 
     $stmt->close();
-
     return true;
 }
 
@@ -231,19 +235,18 @@ function editLastName($contact_id, $newLastName)
     global $conn;
 
     // SQL query to set the last_name to the new value
-    $sql = 'UPDATE contacts SET last_name = ? WHERE contact_id = ?';
+    $sql = "UPDATE contacts SET last_name = ? WHERE contact_id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('si', $newLastName, $contact_id);
+    $stmt->bind_param("si", $newLastName, $contact_id);
     $stmt->execute();
 
     if (!$stmt->execute()) {
-        $error = 'Error updating last name: '.$stmt->error;
+        $error = "Error updating last name: " . $stmt->error;
         $stmt->close();
         returnWithError($error, 400);
     }
 
     $stmt->close();
-
     return true;
 }
 
@@ -253,19 +256,18 @@ function editEmail($contact_id, $newEmail)
     global $conn;
 
     // SQL query to set the email to the new value
-    $sql = 'UPDATE contacts SET email = ? WHERE contact_id = ?';
+    $sql = "UPDATE contacts SET email = ? WHERE contact_id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('si', $newEmail, $contact_id);
+    $stmt->bind_param("si", $newEmail, $contact_id);
     $stmt->execute();
 
     if (!$stmt->execute()) {
-        $error = 'Error updating email: '.$stmt->error;
+        $error = "Error updating email: " . $stmt->error;
         $stmt->close();
         returnWithError($error, 400);
     }
 
     $stmt->close();
-
     return true;
 }
 
@@ -275,19 +277,18 @@ function editPhone($contact_id, $newPhone)
     global $conn;
 
     // SQL query to set the phone number to the new value
-    $sql = 'UPDATE contacts SET phone = ? WHERE contact_id = ?';
+    $sql = "UPDATE contacts SET phone = ? WHERE contact_id = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('si', $newPhone, $contact_id);
+    $stmt->bind_param("si", $newPhone, $contact_id);
     $stmt->execute();
 
     if (!$stmt->execute()) {
-        $error = 'Error updating phone number: '.$stmt->error;
+        $error = "Error updating phone number: " . $stmt->error;
         $stmt->close();
         returnWithError($error, 400);
     }
 
     $stmt->close();
-
     return true;
 }
 
@@ -297,15 +298,15 @@ function deleteContact($contact_id)
     global $conn;
 
     // SQL query to delete the contact
-    $sql = 'DELETE FROM contacts WHERE contact_id = ?';
+    $sql = "DELETE FROM contacts WHERE contact_id = ?";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('i', $contact_id);
+    $stmt->bind_param("i", $contact_id);
     $stmt->execute();
 
     // Check for failed execution of deletion
     if (!$stmt->execute()) {
-        $error = 'Error deleting records: '.$stmt->error;
+        $error = "Error deleting records: " . $stmt->error;
         $stmt->close();
         returnWithError($error, 400);
     }
@@ -313,7 +314,7 @@ function deleteContact($contact_id)
     $stmt->close();
 
     // Using code 204 to designate that there is no content to return
-    // CHANGE TO 200
+    // CHANGE TO 200 
     // http_response_code(204);
 }
 
@@ -327,24 +328,24 @@ function validateContact($firstName, $email, $phone)
     global $conn;
 
     // Checking that first name is valid
-    if (!is_string($firstName) || (trim($firstName) === '')) {
-        $error = 'Please provide a valid First Name';
+    if (!is_string($firstName) || (trim($firstName) === "")) {
+        $error = "Please provide a valid First Name";
         returnWithError($error, 400);
     }
 
-    $emailExists = trim($email) !== '';
-    $phoneExists = trim($phone) !== '';
+    $emailExists = trim($email) !== "";
+    $phoneExists = trim($phone) !== "";
 
     // Ensuring that there is an email or a phone number to use with the contact
     if (!$emailExists && !$phoneExists) {
-        $error = 'Contacts require either a valid Email or Phone Number';
+        $error = "Contacts require either a valid Email or Phone Number";
         returnWithError($error, 400);
     }
 
     // Checking that email has email doesn't have xxx@xxx.xxx format
     $validEmail = filter_var($email, FILTER_VALIDATE_EMAIL);
     if (!$validEmail && $emailExists) {
-        $error = 'Invalid Email Address';
+        $error = "Invalid Email Address";
         returnWithError($error, 400);
     }
 
@@ -352,7 +353,7 @@ function validateContact($firstName, $email, $phone)
     $filteredPhone = str_replace('-', '', $phone);
     $validPhone = is_numeric($filteredPhone);
     if (!$validPhone && $phoneExists) {
-        $error = 'Invalid Phone Number';
+        $error = "Invalid Phone Number";
         returnWithError($error, 400);
         exit;
     }
@@ -362,7 +363,7 @@ function validateContact($firstName, $email, $phone)
 
 /**
  * Function to make sure that a contact has not already been added with the
- * first and last name under a user_id. Returns an error if contact already exits.
+ * first and last name under a user_id. Returns an error if contact already exits
  */
 function checkForDuplicate($user_id, $first_name, $last_name)
 {
@@ -370,10 +371,10 @@ function checkForDuplicate($user_id, $first_name, $last_name)
 
     // Using SQL query to count how many rows exist with a user_id and the same
     // first and last name
-    $sql = 'SELECT COUNT(*) AS count FROM contacts WHERE user_id = ? AND first_name = ? AND last_name = ?';
+    $sql = "SELECT COUNT(*) AS count FROM contacts WHERE user_id = ? AND first_name = ? AND last_name = ?";
 
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param('iss', $user_id, $first_name, $last_name);
+    $stmt->bind_param("iss", $user_id, $first_name, $last_name);
     $stmt->execute();
 
     $result = $stmt->get_result();
@@ -383,7 +384,7 @@ function checkForDuplicate($user_id, $first_name, $last_name)
 
     // If the count is greater than 0, data already exists with this first and last name
     if ($row['count'] > 0) {
-        $error = 'A contact already exists with this first and last name';
+        $error = "A contact already exists with this first and last name";
         returnWithError($error, 400);
     }
 
